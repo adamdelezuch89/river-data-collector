@@ -1,0 +1,58 @@
+services:
+  river-data-collector:
+    build:
+      context: .
+    volumes:
+      - output-data:/var/lib/data
+    command: >
+      sh -c "python main.py"
+    environment:
+      # Region
+      - REGION=${REGION}
+      # Sql
+      - SQL_HOST=${SQL_HOST}
+      - SQL_PORT=5432
+      - SQL_NAME=${SQL_NAME}
+      - SQL_USER=${SQL_USER}
+      - SQL_PASS=${SQL_PASS}
+      - SQL_TABLE=${SQL_TABLE}
+      # Neo4j
+      - NEO4J_URI=bolt://neo4j:7687 # Ensure this matches the Neo4j service port
+      - NEO4J_USER=${NEO4J_USER}
+      - NEO4J_PASS=${NEO4J_PASS}
+      - NEO4J_GRAPH_NAME=river_network
+      # Settings
+      - LOGGER_CONFIG_PATH=/app/logging.conf
+      - DEBUG=true
+      # Processing
+      - OUTPUT_DIR_PATH=/var/lib/data
+      - OUTPUT_FILE_NAME=river-data.json
+      - GEOCODING_AGENT=river-data-collector
+      # OSM
+      - OSM_API_URL=https://overpass-api.de/api/interpreter
+    depends_on:
+      - neo4j
+
+  neo4j:
+    image: neo4j:latest
+    environment:
+      NEO4J_AUTH: neo4j/password
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_import_file_use__neo4j__config: "true"
+      NEO4J_PLUGINS: apoc #'["apoc", "graph-data-science"]'
+    ports:
+      - "7474:7474" # HTTP
+      - "7687:7687" # Bolt
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:
+  output-data:
